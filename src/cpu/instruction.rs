@@ -1,6 +1,7 @@
 pub enum Instruction {
     ADD(ArithmeticTarget),
     INC(ArithmeticTarget),
+    JP(JumpTest),
 }
 impl Instruction {
     pub fn from_byte(byte: u8, prefixed: bool) -> Option<Instruction> {
@@ -36,4 +37,12 @@ pub enum ArithmeticTarget {
     E,
     H,
     L,
+}
+
+pub enum JumpTest {
+    NotZero,
+    Zero,
+    NotCarry,
+    Carry,
+    Always,
 }
