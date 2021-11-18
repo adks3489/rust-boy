@@ -10,6 +10,18 @@ pub struct Registers {
 }
 
 impl Registers {
+    pub fn new() -> Self {
+        Registers {
+            a: 0,
+            b: 0,
+            c: 0,
+            d: 0,
+            e: 0,
+            f: FlagsRegister::new(),
+            h: 0,
+            l: 0,
+        }
+    }
     // af, bc, de, hl
     pub fn get_af(&self) -> u16 {
         (self.a as u16) << 8 | u8::from(self.f) as u16
@@ -46,6 +58,16 @@ pub struct FlagsRegister {
     pub subtract: bool,
     pub half_carry: bool,
     pub carry: bool,
+}
+impl FlagsRegister {
+    fn new() -> Self {
+        FlagsRegister {
+            zero: false,
+            subtract: false,
+            half_carry: false,
+            carry: false,
+        }
+    }
 }
 const ZERO_FLAG_BYTE_POSITION: u8 = 7;
 const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;

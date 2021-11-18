@@ -14,12 +14,28 @@ struct MemoryBus {
     memory: [u8; 0xFFFF],
 }
 impl MemoryBus {
+    fn new() -> Self {
+        MemoryBus {
+            memory: [0; 0xFFFF],
+        }
+    }
     fn read_byte(&self, address: u16) -> u8 {
         self.memory[address as usize]
     }
-    fn write_byte(&self, address: u16, byte: u8) {}
+    fn write_byte(&mut self, address: u16, byte: u8) {
+        self.memory[address as usize] = byte;
+    }
 }
 impl CPU {
+    fn new() -> Self {
+        CPU {
+            registers: Registers::new(),
+            pc: 0,
+            sp: 0,
+            bus: MemoryBus::new(),
+            is_halted: false,
+        }
+    }
     fn step(&mut self) {
         let mut instruction_byte = self.bus.read_byte(self.pc);
         let prefixed = instruction_byte == 0xCB;
