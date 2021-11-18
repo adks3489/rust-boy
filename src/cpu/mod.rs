@@ -15,6 +15,7 @@ impl MemoryBus {
     fn read_byte(&self, address: u16) -> u8 {
         self.memory[address as usize]
     }
+    fn write_byte(&self, address: u16, byte: u8) {}
 }
 impl CPU {
     fn step(&mut self) {
@@ -26,6 +27,9 @@ impl CPU {
         let instruction = Instruction::from_byte(instruction_byte, prefixed)
             .unwrap_or_else(|| panic!("Unknown instruction found for: 0x{:x}", instruction_byte));
         self.pc = self.execute(instruction);
+    }
+    fn read_next_byte(&self) -> u8 {
+        self.bus.read_byte(self.pc + 1)
     }
     fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
@@ -53,6 +57,40 @@ impl CPU {
                 };
                 self.jump(jump_condition)
             }
+            Instruction::LD(load_type) => match load_type {
+                LoadType::Byte(target, source) => {
+                    let source_value = match source {
+                        LoadByteSource::A => self.registers.a,
+                        LoadByteSource::B => self.registers.b,
+                        LoadByteSource::C => self.registers.c,
+                        LoadByteSource::D => self.registers.d,
+                        LoadByteSource::E => self.registers.e,
+                        LoadByteSource::H => self.registers.h,
+                        LoadByteSource::L => self.registers.l,
+                        LoadByteSource::D8 => self.read_next_byte(),
+                        LoadByteSource::HLI => self.bus.read_byte(self.registers.get_hl()),
+                    };
+                    match target {
+                        LoadByteTarget::A => self.registers.a = source_value,
+                        LoadByteTarget::B => self.registers.b = source_value,
+                        LoadByteTarget::C => self.registers.c = source_value,
+                        LoadByteTarget::D => self.registers.d = source_value,
+                        LoadByteTarget::E => self.registers.e = source_value,
+                        LoadByteTarget::H => self.registers.h = source_value,
+                        LoadByteTarget::L => self.registers.l = source_value,
+                        LoadByteTarget::HLI => {
+                            self.bus.write_byte(self.registers.get_hl(), source_value)
+                        }
+                    };
+                    match source {
+                        LoadByteSource::D8 => self.pc.wrapping_add(2),
+                        _ => self.pc.wrapping_add(1),
+                    }
+                }
+                _ => {
+                    todo!()
+                }
+            },
         }
     }
     fn add(&mut self, value: u8) -> u8 {
