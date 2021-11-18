@@ -8,6 +8,7 @@ struct CPU {
     pc: u16,
     sp: u16,
     bus: MemoryBus,
+    is_halted: bool,
 }
 struct MemoryBus {
     memory: [u8; 0xFFFF],
@@ -38,6 +39,9 @@ impl CPU {
         (msb << 8) as u16 | lsb as u16
     }
     fn execute(&mut self, instruction: Instruction) -> u16 {
+        if self.is_halted {
+            return self.pc;
+        }
         match instruction {
             Instruction::ADD(target) => match target {
                 ArithmeticTarget::A => todo!(),
@@ -110,6 +114,11 @@ impl CPU {
             }
             Instruction::CALL(test) => self.call(self.should_jump(&test)),
             Instruction::RET(test) => self.return_(self.should_jump(&test)),
+            Instruction::NOP => self.pc.wrapping_add(1),
+            Instruction::HALT => {
+                self.is_halted = true;
+                self.pc.wrapping_add(1)
+            }
         }
     }
     fn add(&mut self, value: u8) -> u8 {

@@ -7,6 +7,8 @@ pub enum Instruction {
     POP(StackTarget),
     CALL(JumpTest),
     RET(JumpTest),
+    NOP,
+    HALT,
 }
 impl Instruction {
     pub fn from_byte(byte: u8, prefixed: bool) -> Option<Instruction> {
@@ -23,6 +25,8 @@ impl Instruction {
     }
     fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
         match byte {
+            0x0 => Some(Instruction::NOP),
+            0x76 => Some(Instruction::HALT),
             0x87 => Some(Instruction::ADD(ArithmeticTarget::A)),
             0x80 => Some(Instruction::ADD(ArithmeticTarget::B)),
             0x81 => Some(Instruction::ADD(ArithmeticTarget::C)),
