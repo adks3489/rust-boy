@@ -3,6 +3,8 @@ pub enum Instruction {
     INC(ArithmeticTarget),
     JP(JumpTest),
     LD(LoadType),
+    PUSH(StackTarget),
+    POP(StackTarget),
 }
 impl Instruction {
     pub fn from_byte(byte: u8, prefixed: bool) -> Option<Instruction> {
@@ -26,6 +28,14 @@ impl Instruction {
             0x83 => Some(Instruction::ADD(ArithmeticTarget::E)),
             0x84 => Some(Instruction::ADD(ArithmeticTarget::H)),
             0x85 => Some(Instruction::ADD(ArithmeticTarget::L)),
+            0xC5 => Some(Instruction::PUSH(StackTarget::BC)),
+            0xD5 => Some(Instruction::PUSH(StackTarget::DE)),
+            0xE5 => Some(Instruction::PUSH(StackTarget::HL)),
+            0xF5 => Some(Instruction::PUSH(StackTarget::AF)),
+            0xC1 => Some(Instruction::POP(StackTarget::BC)),
+            0xD1 => Some(Instruction::POP(StackTarget::DE)),
+            0xE1 => Some(Instruction::POP(StackTarget::HL)),
+            0xF1 => Some(Instruction::POP(StackTarget::AF)),
             _ => None,
         }
     }
@@ -71,4 +81,11 @@ pub enum LoadByteSource {
 }
 pub enum LoadType {
     Byte(LoadByteTarget, LoadByteSource),
+}
+
+pub enum StackTarget {
+    BC,
+    DE,
+    HL,
+    AF,
 }

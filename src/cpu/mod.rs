@@ -6,6 +6,7 @@ use registers::Registers;
 struct CPU {
     registers: Registers,
     pc: u16,
+    sp: u16,
     bus: MemoryBus,
 }
 struct MemoryBus {
@@ -91,6 +92,26 @@ impl CPU {
                     todo!()
                 }
             },
+            Instruction::PUSH(target) => {
+                let value = match target {
+                    StackTarget::BC => self.registers.get_bc(),
+                    StackTarget::DE => self.registers.get_de(),
+                    StackTarget::HL => self.registers.get_hl(),
+                    StackTarget::AF => self.registers.get_af(),
+                };
+                self.push(value);
+                self.pc.wrapping_add(1)
+            }
+            Instruction::POP(target) => {
+                let value = self.pop();
+                match target {
+                    StackTarget::BC => self.registers.set_bc(value),
+                    StackTarget::DE => self.registers.set_de(value),
+                    StackTarget::HL => self.registers.set_hl(value),
+                    StackTarget::AF => self.registers.set_af(value),
+                }
+                self.pc.wrapping_add(1)
+            }
         }
     }
     fn add(&mut self, value: u8) -> u8 {
@@ -109,5 +130,19 @@ impl CPU {
         } else {
             self.pc.wrapping_add(3)
         }
+    }
+    fn push(&mut self, value: u16) {
+        self.sp = self.sp.wrapping_sub(1);
+        self.bus.write_byte(self.sp, ((value & 0xFF00) >> 8) as u8);
+
+        self.sp = self.sp.wrapping_sub(1);
+        self.bus.write_byte(self.sp, (value & 0xFF) as u8);
+    }
+    fn pop(&mut self) -> u16 {
+        let least_significant_byte = self.bus.read_byte(self.sp) as u16;
+        self.sp = self.sp.wrapping_add(1);
+        let most_significant_byte = self.bus.read_byte(self.sp) as u16;
+        self.sp = self.sp.wrapping_add(1);
+        (most_significant_byte << 8) | least_significant_byte
     }
 }
