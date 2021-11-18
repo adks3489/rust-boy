@@ -5,6 +5,8 @@ pub enum Instruction {
     LD(LoadType),
     PUSH(StackTarget),
     POP(StackTarget),
+    CALL(JumpTest),
+    RET(JumpTest),
 }
 impl Instruction {
     pub fn from_byte(byte: u8, prefixed: bool) -> Option<Instruction> {
@@ -36,6 +38,16 @@ impl Instruction {
             0xD1 => Some(Instruction::POP(StackTarget::DE)),
             0xE1 => Some(Instruction::POP(StackTarget::HL)),
             0xF1 => Some(Instruction::POP(StackTarget::AF)),
+            0xC4 => Some(Instruction::CALL(JumpTest::NotZero)),
+            0xD4 => Some(Instruction::CALL(JumpTest::NotCarry)),
+            0xCC => Some(Instruction::CALL(JumpTest::Zero)),
+            0xDC => Some(Instruction::CALL(JumpTest::Carry)),
+            0xCD => Some(Instruction::CALL(JumpTest::Always)),
+            0xC0 => Some(Instruction::RET(JumpTest::NotZero)),
+            0xD0 => Some(Instruction::RET(JumpTest::NotCarry)),
+            0xC8 => Some(Instruction::RET(JumpTest::Zero)),
+            0xD8 => Some(Instruction::RET(JumpTest::Carry)),
+            0xC9 => Some(Instruction::RET(JumpTest::Always)),
             _ => None,
         }
     }

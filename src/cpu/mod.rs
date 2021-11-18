@@ -32,6 +32,11 @@ impl CPU {
     fn read_next_byte(&self) -> u8 {
         self.bus.read_byte(self.pc + 1)
     }
+    fn read_next_word(&self) -> u16 {
+        let lsb = self.bus.read_byte(self.pc + 1);
+        let msb = self.bus.read_byte(self.pc + 2);
+        (msb << 8) as u16 | lsb as u16
+    }
     fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
             Instruction::ADD(target) => match target {
@@ -48,16 +53,7 @@ impl CPU {
                 ArithmeticTarget::L => todo!(),
             },
             Instruction::INC(_) => todo!(),
-            Instruction::JP(test) => {
-                let jump_condition = match test {
-                    JumpTest::NotZero => !self.registers.f.zero,
-                    JumpTest::Zero => self.registers.f.zero,
-                    JumpTest::NotCarry => !self.registers.f.carry,
-                    JumpTest::Carry => self.registers.f.carry,
-                    JumpTest::Always => true,
-                };
-                self.jump(jump_condition)
-            }
+            Instruction::JP(test) => self.jump(self.should_jump(&test)),
             Instruction::LD(load_type) => match load_type {
                 LoadType::Byte(target, source) => {
                     let source_value = match source {
@@ -112,6 +108,8 @@ impl CPU {
                 }
                 self.pc.wrapping_add(1)
             }
+            Instruction::CALL(test) => self.call(self.should_jump(&test)),
+            Instruction::RET(test) => self.return_(self.should_jump(&test)),
         }
     }
     fn add(&mut self, value: u8) -> u8 {
@@ -121,6 +119,16 @@ impl CPU {
         self.registers.f.carry = did_overflow;
         self.registers.f.half_carry = (self.registers.a & 0xF) + (value & 0xF) > 0xF;
         new_value
+    }
+    fn should_jump(&self, test: &JumpTest) -> bool {
+        let jump_condition = match test {
+            JumpTest::NotZero => !self.registers.f.zero,
+            JumpTest::Zero => self.registers.f.zero,
+            JumpTest::NotCarry => !self.registers.f.carry,
+            JumpTest::Carry => self.registers.f.carry,
+            JumpTest::Always => true,
+        };
+        jump_condition
     }
     fn jump(&mut self, should_jump: bool) -> u16 {
         if should_jump {
@@ -144,5 +152,21 @@ impl CPU {
         let most_significant_byte = self.bus.read_byte(self.sp) as u16;
         self.sp = self.sp.wrapping_add(1);
         (most_significant_byte << 8) | least_significant_byte
+    }
+    fn call(&mut self, should_jump: bool) -> u16 {
+        let next_pc = self.pc.wrapping_add(3);
+        if should_jump {
+            self.push(next_pc);
+            self.read_next_word()
+        } else {
+            next_pc
+        }
+    }
+    fn return_(&mut self, should_jump: bool) -> u16 {
+        if should_jump {
+            self.pop()
+        } else {
+            self.pc.wrapping_add(1)
+        }
     }
 }
