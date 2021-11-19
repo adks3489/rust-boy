@@ -25,6 +25,10 @@ impl MemoryBus {
     fn write_byte(&mut self, address: u16, byte: u8) {
         self.memory[address as usize] = byte;
     }
+    fn write_word(&mut self, address: u16, word: u16) {
+        self.memory[address as usize] = (word & 0xFF) as u8;
+        self.memory[address as usize + 1] = ((word & 0xFF00) >> 8) as u8;
+    }
 }
 impl CPU {
     fn new() -> Self {
@@ -85,7 +89,26 @@ impl CPU {
                         LoadByteSource::H => self.registers.h,
                         LoadByteSource::L => self.registers.l,
                         LoadByteSource::D8 => self.read_next_byte(),
+                        LoadByteSource::N16I => self.bus.read_byte(self.read_next_word()),
                         LoadByteSource::HLI => self.bus.read_byte(self.registers.get_hl()),
+                        LoadByteSource::BCI => self.bus.read_byte(self.registers.get_bc()),
+                        LoadByteSource::DEI => self.bus.read_byte(self.registers.get_de()),
+                        LoadByteSource::N8I => {
+                            self.bus.read_byte(0xFF00 | self.read_next_byte() as u16)
+                        }
+                        LoadByteSource::CI => self.bus.read_byte(0xFF00 | self.registers.c as u16),
+                        LoadByteSource::HLINCR => {
+                            let addr = self.registers.get_hl();
+                            self.registers
+                                .set_hl(self.registers.get_hl().wrapping_add(1));
+                            self.bus.read_byte(addr)
+                        }
+                        LoadByteSource::HLDECR => {
+                            let addr = self.registers.get_hl();
+                            self.registers
+                                .set_hl(self.registers.get_hl().wrapping_sub(1));
+                            self.bus.read_byte(addr)
+                        }
                     };
                     match target {
                         LoadByteTarget::A => self.registers.a = source_value,
@@ -95,17 +118,77 @@ impl CPU {
                         LoadByteTarget::E => self.registers.e = source_value,
                         LoadByteTarget::H => self.registers.h = source_value,
                         LoadByteTarget::L => self.registers.l = source_value,
+                        LoadByteTarget::N16I => {
+                            self.bus.write_byte(self.read_next_word(), source_value);
+                            let _ = self.pc.wrapping_add(2);
+                        }
                         LoadByteTarget::HLI => {
                             self.bus.write_byte(self.registers.get_hl(), source_value)
                         }
+                        LoadByteTarget::BCI => {
+                            self.bus.write_byte(self.registers.get_bc(), source_value)
+                        }
+                        LoadByteTarget::DEI => {
+                            self.bus.write_byte(self.registers.get_de(), source_value)
+                        }
+                        LoadByteTarget::CI => self
+                            .bus
+                            .write_byte(0xFF00 | self.registers.c as u16, source_value),
+
+                        LoadByteTarget::HLINCR => {
+                            let addr = self.registers.get_hl();
+                            self.registers
+                                .set_hl(self.registers.get_hl().wrapping_add(1));
+                            self.bus.write_byte(addr, source_value)
+                        }
+                        LoadByteTarget::HLDECR => {
+                            let addr = self.registers.get_hl();
+                            self.registers
+                                .set_hl(self.registers.get_hl().wrapping_sub(1));
+                            self.bus.write_byte(addr, source_value)
+                        }
+                        LoadByteTarget::N8I => self
+                            .bus
+                            .write_byte(0xFF00 | self.read_next_byte() as u16, source_value),
                     };
                     match source {
                         LoadByteSource::D8 => self.pc.wrapping_add(2),
+                        LoadByteSource::N16I => self.pc.wrapping_add(3),
+                        LoadByteSource::N8I => self.pc.wrapping_add(2),
                         _ => self.pc.wrapping_add(1),
                     }
                 }
-                _ => {
-                    todo!()
+                LoadType::Word(target, source) => {
+                    let source_value = match source {
+                        LoadWordSource::D16 => self.read_next_word(),
+                        LoadWordSource::SP => self.sp,
+                        LoadWordSource::HL => self.registers.get_hl(),
+                    };
+                    match target {
+                        LoadWordTarget::BC => self.registers.set_bc(source_value),
+                        LoadWordTarget::DE => self.registers.set_de(source_value),
+                        LoadWordTarget::HL => self.registers.set_hl(source_value),
+                        LoadWordTarget::N16I => {
+                            self.bus.write_word(self.read_next_word(), source_value);
+                            let _ = self.pc.wrapping_add(2);
+                        }
+                        LoadWordTarget::SP => self.sp = source_value,
+                    }
+
+                    match source {
+                        LoadWordSource::D16 => self.pc.wrapping_add(3),
+                        _ => self.pc.wrapping_add(1),
+                    }
+                }
+                LoadType::HLFromSPN => {
+                    let value = self.read_next_byte() as i8 as i16 as u16;
+                    let result = self.sp.wrapping_add(value);
+                    self.registers.set_hl(result);
+                    self.registers.f.zero = false;
+                    self.registers.f.subtract = false;
+                    self.registers.f.half_carry = (self.sp & 0xF) + (value & 0xF) > 0xF;
+                    self.registers.f.carry = (self.sp & 0xFF) + (value & 0xFF) > 0xFF;
+                    self.pc.wrapping_add(2)
                 }
             },
             Instruction::PUSH(target) => {
@@ -135,6 +218,7 @@ impl CPU {
                 self.is_halted = true;
                 self.pc.wrapping_add(1)
             }
+            Instruction::STOP => todo!(),
         }
     }
     fn add(&mut self, value: u8) -> u8 {
