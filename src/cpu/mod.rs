@@ -63,19 +63,25 @@ impl CPU {
             return self.pc;
         }
         match instruction {
-            Instruction::ADD(target) => match target {
-                ArithmeticTarget::A => todo!(),
-                ArithmeticTarget::B => todo!(),
-                ArithmeticTarget::C => {
-                    let new_value = self.add(self.registers.c);
-                    self.registers.a = new_value;
-                    self.pc.wrapping_add(1)
-                }
-                ArithmeticTarget::D => todo!(),
-                ArithmeticTarget::E => todo!(),
-                ArithmeticTarget::H => todo!(),
-                ArithmeticTarget::L => todo!(),
-            },
+            Instruction::ADD(target) => {
+                let value = match target {
+                    ArithmeticTarget::A => self.add(self.registers.a),
+                    ArithmeticTarget::B => self.add(self.registers.b),
+                    ArithmeticTarget::C => self.add(self.registers.c),
+                    ArithmeticTarget::D => self.add(self.registers.d),
+                    ArithmeticTarget::E => self.add(self.registers.e),
+                    ArithmeticTarget::H => self.add(self.registers.h),
+                    ArithmeticTarget::L => self.add(self.registers.l),
+                    ArithmeticTarget::HLI => self.add(self.bus.read_byte(self.registers.get_hl())),
+                    ArithmeticTarget::D8 => {
+                        let v = self.add(self.read_next_byte());
+                        let _ = self.pc.wrapping_add(1);
+                        v
+                    }
+                };
+                self.registers.a = value;
+                self.pc.wrapping_add(1)
+            }
             Instruction::INC(_) => todo!(),
             Instruction::JP(test) => self.jump(self.should_jump(&test)),
             Instruction::LD(load_type) => match load_type {
@@ -219,6 +225,42 @@ impl CPU {
                 self.pc.wrapping_add(1)
             }
             Instruction::STOP => todo!(),
+            Instruction::ADDHL(source) => {
+                // F: - 0 H C
+                let value = match source {
+                    Source::BC => self.registers.get_bc(),
+                    Source::DE => self.registers.get_de(),
+                    Source::HL => self.registers.get_hl(),
+                    Source::SP => self.sp,
+                    _ => panic!("unsupported ADDHL source"),
+                };
+                let hl = self.registers.get_hl();
+                let (new_value, did_overflow) = hl.overflowing_add(value);
+                self.registers.f.subtract = false;
+                // Half carry tests if we flow over the 11th bit i.e. does adding the two
+                // numbers together cause the 11th bit to flip
+                let mask = 0b111_1111_1111; // mask out bits 11-15
+                self.registers.f.half_carry = (value & mask) + (hl & mask) > mask;
+                self.registers.f.carry = did_overflow;
+
+                self.registers.set_hl(new_value);
+                self.pc.wrapping_add(1)
+            }
+            Instruction::ADDSP => {
+                // F: 0 0 H C
+                let value = self.read_next_byte() as i8 as u8 as u16;
+                let new_value = value.wrapping_add(value);
+                self.registers.f.zero = false;
+                self.registers.f.subtract = false;
+                let half_carry_mask = 0xF;
+                self.registers.f.half_carry =
+                    (self.sp & half_carry_mask) + (value & half_carry_mask) > half_carry_mask;
+                let carry_mask = 0xFF;
+                self.registers.f.carry = (self.sp & carry_mask) + (value & carry_mask) > carry_mask;
+
+                self.sp = new_value;
+                self.pc.wrapping_add(2)
+            }
         }
     }
     fn add(&mut self, value: u8) -> u8 {

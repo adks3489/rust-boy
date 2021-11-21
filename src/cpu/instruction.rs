@@ -1,6 +1,8 @@
 pub enum Instruction {
     LD(LoadType),
     ADD(ArithmeticTarget),
+    ADDHL(Source),
+    ADDSP,
     INC(ArithmeticTarget),
     JP(JumpTest),
     PUSH(StackTarget),
@@ -303,7 +305,7 @@ impl Instruction {
                 LoadWordTarget::N16I,
                 LoadWordSource::SP,
             ))),
-            0x09 => todo!(),
+            0x09 => Some(Instruction::ADDHL(Source::BC)),
             0x0A => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::A,
                 LoadByteSource::BCI,
@@ -334,7 +336,7 @@ impl Instruction {
             ))),
             0x17 => todo!(),
             0x18 => todo!(),
-            0x19 => todo!(),
+            0x19 => Some(Instruction::ADDHL(Source::DE)),
             0x1A => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::A,
                 LoadByteSource::DEI,
@@ -365,7 +367,7 @@ impl Instruction {
             ))),
             0x27 => todo!(),
             0x28 => todo!(),
-            0x29 => todo!(),
+            0x29 => Some(Instruction::ADDHL(Source::HL)),
             0x2A => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::A,
                 LoadByteSource::HLINCR,
@@ -396,7 +398,7 @@ impl Instruction {
             ))),
             0x37 => todo!(),
             0x38 => todo!(),
-            0x39 => todo!(),
+            0x39 => Some(Instruction::ADDHL(Source::SP)),
             0x3A => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::A,
                 LoadByteSource::HLDECR,
@@ -668,7 +670,7 @@ impl Instruction {
             0x83 => Some(Instruction::ADD(ArithmeticTarget::E)),
             0x84 => Some(Instruction::ADD(ArithmeticTarget::H)),
             0x85 => Some(Instruction::ADD(ArithmeticTarget::L)),
-            0x86 => todo!(),
+            0x86 => Some(Instruction::ADD(ArithmeticTarget::HLI)),
             0x87 => Some(Instruction::ADD(ArithmeticTarget::A)),
             0x88 => todo!(),
             0x89 => todo!(),
@@ -732,7 +734,7 @@ impl Instruction {
             0xC3 => todo!(),
             0xC4 => Some(Instruction::CALL(JumpTest::NotZero)),
             0xC5 => Some(Instruction::PUSH(StackTarget::BC)),
-            0xC6 => todo!(),
+            0xC6 => Some(Instruction::ADD(ArithmeticTarget::D8)),
             0xC7 => todo!(),
             0xC8 => Some(Instruction::RET(JumpTest::Zero)),
             0xC9 => Some(Instruction::RET(JumpTest::Always)),
@@ -772,7 +774,7 @@ impl Instruction {
             0xE5 => Some(Instruction::PUSH(StackTarget::HL)),
             0xE6 => todo!(),
             0xE7 => todo!(),
-            0xE8 => todo!(),
+            0xE8 => Some(Instruction::ADDSP),
             0xE9 => todo!(),
             0xEA => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::N16I,
@@ -815,6 +817,27 @@ impl Instruction {
         }
     }
 }
+pub type Source = Target;
+pub enum Target {
+    A,
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    AF,
+    BC,
+    DE,
+    HL,
+    SP,
+}
+pub type InstructionSource = Target;
+pub enum InstructionTarget {
+    Direct(Target),
+    Indirect(Target),
+}
+
 pub enum ArithmeticTarget {
     A,
     B,
@@ -823,6 +846,8 @@ pub enum ArithmeticTarget {
     E,
     H,
     L,
+    HLI,
+    D8,
 }
 
 pub enum JumpTest {
