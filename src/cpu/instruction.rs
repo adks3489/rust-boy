@@ -1,9 +1,10 @@
+pub type InstructionSize = u8;
 pub enum Instruction {
     LD(LoadType),
     ADD(ArithmeticTarget),
     ADDHL(Source),
     ADDSP,
-    INC(ArithmeticTarget),
+    INC(Target),
     JP(JumpTest),
     PUSH(StackTarget),
     POP(StackTarget),
@@ -285,39 +286,39 @@ impl Instruction {
     fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
         match byte {
             0x0 => Some(Instruction::NOP),
-            0x01 => Some(Instruction::LD(LoadType::Word(
+            0x1 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::BC,
                 LoadWordSource::D16,
             ))),
-            0x02 => Some(Instruction::LD(LoadType::Byte(
+            0x2 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::BCI,
                 LoadByteSource::A,
             ))),
-            0x03 => todo!(),
-            0x04 => todo!(),
-            0x05 => todo!(),
-            0x06 => Some(Instruction::LD(LoadType::Byte(
+            0x3 => Some(Instruction::INC(Target::BC)),
+            0x4 => Some(Instruction::INC(Target::B)),
+            0x5 => todo!(),
+            0x6 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::B,
                 LoadByteSource::D8,
             ))),
-            0x07 => todo!(),
-            0x08 => Some(Instruction::LD(LoadType::Word(
+            0x7 => todo!(),
+            0x8 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::N16I,
                 LoadWordSource::SP,
             ))),
-            0x09 => Some(Instruction::ADDHL(Source::BC)),
-            0x0A => Some(Instruction::LD(LoadType::Byte(
+            0x9 => Some(Instruction::ADDHL(Source::BC)),
+            0xA => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::A,
                 LoadByteSource::BCI,
             ))),
-            0x0B => todo!(),
-            0x0C => todo!(),
-            0x0D => todo!(),
-            0x0E => Some(Instruction::LD(LoadType::Byte(
+            0xB => todo!(),
+            0xC => Some(Instruction::INC(Target::C)),
+            0xD => todo!(),
+            0xE => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::C,
                 LoadByteSource::D8,
             ))),
-            0x0F => todo!(),
+            0xF => todo!(),
             0x10 => Some(Instruction::STOP),
             0x11 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::DE,
@@ -327,8 +328,8 @@ impl Instruction {
                 LoadByteTarget::DEI,
                 LoadByteSource::A,
             ))),
-            0x13 => todo!(),
-            0x14 => todo!(),
+            0x13 => Some(Instruction::INC(Target::DE)),
+            0x14 => Some(Instruction::INC(Target::D)),
             0x15 => todo!(),
             0x16 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::D,
@@ -342,7 +343,7 @@ impl Instruction {
                 LoadByteSource::DEI,
             ))),
             0x1B => todo!(),
-            0x1C => todo!(),
+            0x1C => Some(Instruction::INC(Target::E)),
             0x1D => todo!(),
             0x1E => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::E,
@@ -358,8 +359,8 @@ impl Instruction {
                 LoadByteTarget::HLINCR,
                 LoadByteSource::A,
             ))),
-            0x23 => todo!(),
-            0x24 => todo!(),
+            0x23 => Some(Instruction::INC(Target::HL)),
+            0x24 => Some(Instruction::INC(Target::H)),
             0x25 => todo!(),
             0x26 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::H,
@@ -373,7 +374,7 @@ impl Instruction {
                 LoadByteSource::HLINCR,
             ))),
             0x2B => todo!(),
-            0x2C => todo!(),
+            0x2C => Some(Instruction::INC(Target::L)),
             0x2D => todo!(),
             0x2E => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::L,
@@ -389,8 +390,8 @@ impl Instruction {
                 LoadByteTarget::HLDECR,
                 LoadByteSource::A,
             ))),
-            0x33 => todo!(),
-            0x34 => todo!(),
+            0x33 => Some(Instruction::INC(Target::SP)),
+            0x34 => Some(Instruction::INC(Target::IndirectHL)),
             0x35 => todo!(),
             0x36 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::HLI,
@@ -404,7 +405,7 @@ impl Instruction {
                 LoadByteSource::HLDECR,
             ))),
             0x3B => todo!(),
-            0x3C => todo!(),
+            0x3C => Some(Instruction::INC(Target::A)),
             0x3D => todo!(),
             0x3E => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::A,
@@ -831,11 +832,7 @@ pub enum Target {
     DE,
     HL,
     SP,
-}
-pub type InstructionSource = Target;
-pub enum InstructionTarget {
-    Direct(Target),
-    Indirect(Target),
+    IndirectHL,
 }
 
 pub enum ArithmeticTarget {
