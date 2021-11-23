@@ -111,6 +111,35 @@ impl CPU {
                 };
                 self.pc.wrapping_add(1)
             }
+            Instruction::DEC(target) => {
+                match target {
+                    Target::BC => self
+                        .registers
+                        .set_bc(self.registers.get_bc().wrapping_sub(1)),
+                    Target::DE => self
+                        .registers
+                        .set_de(self.registers.get_de().wrapping_sub(1)),
+                    Target::HL => self
+                        .registers
+                        .set_hl(self.registers.get_hl().wrapping_sub(1)),
+                    Target::SP => self.sp = self.sp.wrapping_sub(1),
+                    Target::B => self.registers.b = self.dec(self.registers.b),
+                    Target::D => self.registers.d = self.dec(self.registers.d),
+                    Target::H => self.registers.h = self.dec(self.registers.h),
+                    Target::C => self.registers.c = self.dec(self.registers.c),
+                    Target::E => self.registers.e = self.dec(self.registers.e),
+                    Target::L => self.registers.l = self.dec(self.registers.l),
+                    Target::A => self.registers.a = self.dec(self.registers.a),
+                    Target::IndirectHL => {
+                        let addr = self.registers.get_hl();
+                        let mut val = self.bus.read_byte(addr);
+                        val = self.dec(val);
+                        self.bus.write_byte(addr, val);
+                    }
+                    _ => panic!("unsupported DEC target"),
+                }
+                self.pc.wrapping_add(1)
+            }
             Instruction::JP(test) => self.jump(self.should_jump(&test)),
             Instruction::LD(load_type) => match load_type {
                 LoadType::Byte(target, source) => {
@@ -355,6 +384,13 @@ impl CPU {
         // Half Carry is set if the lower nibble of the value is equal to 0xF.
         // If the nibble is equal to 0xF (0b1111) that means incrementing the value
         // by 1 would cause a carry from the lower nibble to the upper nibble.
+        self.registers.f.half_carry = value & 0xF == 0xF;
+        new_value
+    }
+    fn dec(&mut self, value: u8) -> u8 {
+        let new_value = value.wrapping_sub(1);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = true;
         self.registers.f.half_carry = value & 0xF == 0xF;
         new_value
     }
