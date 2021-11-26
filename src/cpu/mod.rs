@@ -84,20 +84,44 @@ impl CPU {
             }
             Instruction::SUB(source) => {
                 let value = match source {
-                    Source::A => self.sub(self.registers.a),
-                    Source::B => self.sub(self.registers.b),
-                    Source::C => self.sub(self.registers.c),
-                    Source::D => self.sub(self.registers.d),
-                    Source::E => self.sub(self.registers.e),
-                    Source::H => self.sub(self.registers.h),
-                    Source::L => self.sub(self.registers.l),
-                    Source::IndirectHL => self.sub(self.bus.read_byte(self.registers.get_hl())),
+                    Source::A => self.sub(self.registers.a, false),
+                    Source::B => self.sub(self.registers.b, false),
+                    Source::C => self.sub(self.registers.c, false),
+                    Source::D => self.sub(self.registers.d, false),
+                    Source::E => self.sub(self.registers.e, false),
+                    Source::H => self.sub(self.registers.h, false),
+                    Source::L => self.sub(self.registers.l, false),
+                    Source::IndirectHL => {
+                        self.sub(self.bus.read_byte(self.registers.get_hl()), false)
+                    }
                     Source::D8 => {
-                        let v = self.sub(self.read_next_byte());
+                        let v = self.sub(self.read_next_byte(), false);
                         let _ = self.pc.wrapping_add(1);
                         v
                     }
                     _ => panic!("unsupported SUB source"),
+                };
+                self.registers.a = value;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::SBC(source) => {
+                let value = match source {
+                    Source::A => self.sub(self.registers.a, true),
+                    Source::B => self.sub(self.registers.b, true),
+                    Source::C => self.sub(self.registers.c, true),
+                    Source::D => self.sub(self.registers.d, true),
+                    Source::E => self.sub(self.registers.e, true),
+                    Source::H => self.sub(self.registers.h, true),
+                    Source::L => self.sub(self.registers.l, true),
+                    Source::IndirectHL => {
+                        self.sub(self.bus.read_byte(self.registers.get_hl()), true)
+                    }
+                    Source::D8 => {
+                        let v = self.sub(self.read_next_byte(), true);
+                        let _ = self.pc.wrapping_add(1);
+                        v
+                    }
+                    _ => panic!("unsupported SBC source"),
                 };
                 self.registers.a = value;
                 self.pc.wrapping_add(1)
@@ -414,13 +438,20 @@ impl CPU {
         self.registers.f.half_carry = value & 0xF == 0xF;
         new_value
     }
-    fn sub(&mut self, value: u8) -> u8 {
+    fn sub(&mut self, value: u8, with_carry: bool) -> u8 {
         // Z1HC
         let (new_value, did_overflow) = self.registers.a.overflowing_sub(value);
+        let carry = if with_carry && self.registers.f.carry {
+            1
+        } else {
+            0
+        };
+        let (new_value, did_overflow2) = new_value.overflowing_sub(carry);
+
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = true;
-        self.registers.f.half_carry = (self.registers.a & 0xF) < (value & 0xF);
-        self.registers.f.carry = did_overflow;
+        self.registers.f.half_carry = (self.registers.a & 0xF) < (value & 0xF) + carry;
+        self.registers.f.carry = did_overflow || did_overflow2;
         new_value
     }
 }
