@@ -82,6 +82,26 @@ impl CPU {
                 self.registers.a = value;
                 self.pc.wrapping_add(1)
             }
+            Instruction::SUB(source) => {
+                let value = match source {
+                    Source::A => self.sub(self.registers.a),
+                    Source::B => self.sub(self.registers.b),
+                    Source::C => self.sub(self.registers.c),
+                    Source::D => self.sub(self.registers.d),
+                    Source::E => self.sub(self.registers.e),
+                    Source::H => self.sub(self.registers.h),
+                    Source::L => self.sub(self.registers.l),
+                    Source::IndirectHL => self.sub(self.bus.read_byte(self.registers.get_hl())),
+                    Source::D8 => {
+                        let v = self.sub(self.read_next_byte());
+                        let _ = self.pc.wrapping_add(1);
+                        v
+                    }
+                    _ => panic!("unsupported SUB source"),
+                };
+                self.registers.a = value;
+                self.pc.wrapping_add(1)
+            }
             Instruction::INC(target) => {
                 match target {
                     Target::BC => self
@@ -392,6 +412,15 @@ impl CPU {
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = true;
         self.registers.f.half_carry = value & 0xF == 0xF;
+        new_value
+    }
+    fn sub(&mut self, value: u8) -> u8 {
+        // Z1HC
+        let (new_value, did_overflow) = self.registers.a.overflowing_sub(value);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = true;
+        self.registers.f.half_carry = (self.registers.a & 0xF) < (value & 0xF);
+        self.registers.f.carry = did_overflow;
         new_value
     }
 }
