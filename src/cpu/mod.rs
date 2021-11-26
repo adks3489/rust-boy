@@ -65,19 +65,43 @@ impl CPU {
         match instruction {
             Instruction::ADD(target) => {
                 let value = match target {
-                    ArithmeticTarget::A => self.add(self.registers.a),
-                    ArithmeticTarget::B => self.add(self.registers.b),
-                    ArithmeticTarget::C => self.add(self.registers.c),
-                    ArithmeticTarget::D => self.add(self.registers.d),
-                    ArithmeticTarget::E => self.add(self.registers.e),
-                    ArithmeticTarget::H => self.add(self.registers.h),
-                    ArithmeticTarget::L => self.add(self.registers.l),
-                    ArithmeticTarget::HLI => self.add(self.bus.read_byte(self.registers.get_hl())),
+                    ArithmeticTarget::A => self.add(self.registers.a, false),
+                    ArithmeticTarget::B => self.add(self.registers.b, false),
+                    ArithmeticTarget::C => self.add(self.registers.c, false),
+                    ArithmeticTarget::D => self.add(self.registers.d, false),
+                    ArithmeticTarget::E => self.add(self.registers.e, false),
+                    ArithmeticTarget::H => self.add(self.registers.h, false),
+                    ArithmeticTarget::L => self.add(self.registers.l, false),
+                    ArithmeticTarget::HLI => {
+                        self.add(self.bus.read_byte(self.registers.get_hl()), false)
+                    }
                     ArithmeticTarget::D8 => {
-                        let v = self.add(self.read_next_byte());
+                        let v = self.add(self.read_next_byte(), false);
                         let _ = self.pc.wrapping_add(1);
                         v
                     }
+                };
+                self.registers.a = value;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::ADC(source) => {
+                let value = match source {
+                    Source::A => self.add(self.registers.a, true),
+                    Source::B => self.add(self.registers.b, true),
+                    Source::C => self.add(self.registers.c, true),
+                    Source::D => self.add(self.registers.d, true),
+                    Source::E => self.add(self.registers.e, true),
+                    Source::H => self.add(self.registers.h, true),
+                    Source::L => self.add(self.registers.l, true),
+                    Source::IndirectHL => {
+                        self.add(self.bus.read_byte(self.registers.get_hl()), true)
+                    }
+                    Source::D8 => {
+                        let v = self.add(self.read_next_byte(), true);
+                        let _ = self.pc.wrapping_add(1);
+                        v
+                    }
+                    _ => panic!("unsupported ADC source"),
                 };
                 self.registers.a = value;
                 self.pc.wrapping_add(1)
@@ -364,12 +388,18 @@ impl CPU {
             }
         }
     }
-    fn add(&mut self, value: u8) -> u8 {
+    fn add(&mut self, value: u8, with_carry: bool) -> u8 {
         let (new_value, did_overflow) = self.registers.a.overflowing_add(value);
+        let carry = if with_carry && self.registers.f.carry {
+            1
+        } else {
+            0
+        };
+        let (new_value, did_overflow2) = new_value.overflowing_add(carry);
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
-        self.registers.f.carry = did_overflow;
-        self.registers.f.half_carry = (self.registers.a & 0xF) + (value & 0xF) > 0xF;
+        self.registers.f.carry = did_overflow || did_overflow2;
+        self.registers.f.half_carry = ((self.registers.a & 0xF) + (value & 0xF) + carry) > 0xF;
         new_value
     }
     fn should_jump(&self, test: &JumpTest) -> bool {
