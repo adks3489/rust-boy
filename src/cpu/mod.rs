@@ -210,6 +210,24 @@ impl CPU {
                 self.registers.a = value;
                 self.pc.wrapping_add(1)
             }
+            Instruction::CP(source) => {
+                match source {
+                    Source::A => self.cp(self.registers.a),
+                    Source::B => self.cp(self.registers.b),
+                    Source::C => self.cp(self.registers.c),
+                    Source::D => self.cp(self.registers.d),
+                    Source::E => self.cp(self.registers.e),
+                    Source::H => self.cp(self.registers.h),
+                    Source::L => self.cp(self.registers.l),
+                    Source::IndirectHL => self.cp(self.bus.read_byte(self.registers.get_hl())),
+                    Source::D8 => {
+                        self.cp(self.read_next_byte());
+                        let _ = self.pc.wrapping_add(1);
+                    }
+                    _ => panic!("unsupported CP source"),
+                };
+                self.pc.wrapping_add(1)
+            }
             Instruction::INC(target) => {
                 match target {
                     Target::BC => self
@@ -570,5 +588,12 @@ impl CPU {
         self.registers.f.half_carry = false;
         self.registers.f.carry = false;
         new_value
+    }
+    fn cp(&mut self, value: u8) {
+        // Z1HC
+        self.registers.f.zero = self.registers.a == value;
+        self.registers.f.subtract = true;
+        self.registers.f.half_carry = (0x0f & self.registers.a) > (0x0f & value);
+        self.registers.f.carry = self.registers.a < value;
     }
 }
