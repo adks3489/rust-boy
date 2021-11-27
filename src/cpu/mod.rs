@@ -150,6 +150,66 @@ impl CPU {
                 self.registers.a = value;
                 self.pc.wrapping_add(1)
             }
+            Instruction::AND(source) => {
+                let value = match source {
+                    Source::A => self.and(self.registers.a),
+                    Source::B => self.and(self.registers.b),
+                    Source::C => self.and(self.registers.c),
+                    Source::D => self.and(self.registers.d),
+                    Source::E => self.and(self.registers.e),
+                    Source::H => self.and(self.registers.h),
+                    Source::L => self.and(self.registers.l),
+                    Source::IndirectHL => self.and(self.bus.read_byte(self.registers.get_hl())),
+                    Source::D8 => {
+                        let v = self.and(self.read_next_byte());
+                        let _ = self.pc.wrapping_add(1);
+                        v
+                    }
+                    _ => panic!("unsupported AND source"),
+                };
+                self.registers.a = value;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::XOR(source) => {
+                let value = match source {
+                    Source::A => self.xor(self.registers.a),
+                    Source::B => self.xor(self.registers.b),
+                    Source::C => self.xor(self.registers.c),
+                    Source::D => self.xor(self.registers.d),
+                    Source::E => self.xor(self.registers.e),
+                    Source::H => self.xor(self.registers.h),
+                    Source::L => self.xor(self.registers.l),
+                    Source::IndirectHL => self.xor(self.bus.read_byte(self.registers.get_hl())),
+                    Source::D8 => {
+                        let v = self.xor(self.read_next_byte());
+                        let _ = self.pc.wrapping_add(1);
+                        v
+                    }
+                    _ => panic!("unsupported XOR source"),
+                };
+                self.registers.a = value;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::OR(source) => {
+                let value = match source {
+                    Source::A => self.or(self.registers.a),
+                    Source::B => self.or(self.registers.b),
+                    Source::C => self.or(self.registers.c),
+                    Source::D => self.or(self.registers.d),
+                    Source::E => self.or(self.registers.e),
+                    Source::H => self.or(self.registers.h),
+                    Source::L => self.or(self.registers.l),
+                    Source::IndirectHL => self.or(self.bus.read_byte(self.registers.get_hl())),
+                    Source::D8 => {
+                        let v = self.or(self.read_next_byte());
+                        let _ = self.pc.wrapping_add(1);
+                        v
+                    }
+                    _ => panic!("unsupported OR source"),
+                };
+                self.registers.a = value;
+                self.pc.wrapping_add(1)
+            }
             Instruction::INC(target) => {
                 match target {
                     Target::BC => self
@@ -482,6 +542,33 @@ impl CPU {
         self.registers.f.subtract = true;
         self.registers.f.half_carry = (self.registers.a & 0xF) < (value & 0xF) + carry;
         self.registers.f.carry = did_overflow || did_overflow2;
+        new_value
+    }
+    fn and(&mut self, value: u8) -> u8 {
+        // Z010
+        let new_value = self.registers.a & value;
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = true;
+        self.registers.f.carry = false;
+        new_value
+    }
+    fn xor(&mut self, value: u8) -> u8 {
+        // Z000
+        let new_value = self.registers.a ^ value;
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = false;
+        new_value
+    }
+    fn or(&mut self, value: u8) -> u8 {
+        // Z000
+        let new_value = self.registers.a | value;
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = false;
         new_value
     }
 }
