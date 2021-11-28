@@ -11,6 +11,10 @@ pub enum Instruction {
     XOR(Source),
     OR(Source),
     CP(Source),
+    DAA,
+    SCF,
+    CPL,
+    CCF,
     INC(Target),
     DEC(Target),
     JP(JumpTest),
@@ -374,7 +378,7 @@ impl Instruction {
                 LoadByteTarget::H,
                 LoadByteSource::D8,
             ))),
-            0x27 => todo!(),
+            0x27 => Some(Instruction::DAA),
             0x28 => todo!(),
             0x29 => Some(Instruction::ADDHL(Source::HL)),
             0x2A => Some(Instruction::LD(LoadType::Byte(
@@ -388,7 +392,7 @@ impl Instruction {
                 LoadByteTarget::L,
                 LoadByteSource::D8,
             ))),
-            0x2F => todo!(),
+            0x2F => Some(Instruction::CPL),
             0x30 => todo!(),
             0x31 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::SP,
@@ -405,7 +409,7 @@ impl Instruction {
                 LoadByteTarget::HLI,
                 LoadByteSource::D8,
             ))),
-            0x37 => todo!(),
+            0x37 => Some(Instruction::SCF),
             0x38 => todo!(),
             0x39 => Some(Instruction::ADDHL(Source::SP)),
             0x3A => Some(Instruction::LD(LoadType::Byte(
@@ -419,7 +423,7 @@ impl Instruction {
                 LoadByteTarget::A,
                 LoadByteSource::D8,
             ))),
-            0x3F => todo!(),
+            0x3F => Some(Instruction::CCF),
             0x40 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::B,
                 LoadByteSource::B,

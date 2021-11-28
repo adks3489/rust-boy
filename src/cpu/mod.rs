@@ -228,6 +228,53 @@ impl CPU {
                 };
                 self.pc.wrapping_add(1)
             }
+            Instruction::DAA => {
+                // Z-0C
+                let mut value = self.registers.a as u16;
+                if self.registers.f.subtract {
+                    if self.registers.f.carry {
+                        value = (value - 0x06) & 0xff;
+                    }
+                    if self.registers.f.carry {
+                        value -= 0x60;
+                    }
+                } else {
+                    if self.registers.f.half_carry || (value & 0xf) > 9 {
+                        value += 0x06;
+                    }
+                    if self.registers.f.carry || value > 0x9F {
+                        value += 0x60;
+                    }
+                }
+                self.registers.f.zero = value == 0;
+                self.registers.f.half_carry = false;
+                self.registers.f.carry = (value & 0x100) != 0;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::SCF => {
+                // -001
+                // Set carry flag
+                self.registers.f.subtract = false;
+                self.registers.f.half_carry = false;
+                self.registers.f.carry = true;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::CPL => {
+                // -11-
+                // Flips all the bits in the 8-bit A register
+                self.registers.a = !self.registers.a;
+                self.registers.f.subtract = true;
+                self.registers.f.half_carry = true;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::CCF => {
+                // -00C
+                // Compliment carry flag
+                self.registers.f.subtract = false;
+                self.registers.f.half_carry = false;
+                self.registers.f.carry = !self.registers.f.carry;
+                self.pc.wrapping_add(1)
+            }
             Instruction::INC(target) => {
                 match target {
                     Target::BC => self
