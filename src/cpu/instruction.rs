@@ -25,6 +25,10 @@ pub enum Instruction {
     NOP,
     STOP,
     HALT,
+    RLCA,
+    RRCA,
+    RLA,
+    RRA,
 }
 impl Instruction {
     pub fn from_byte(byte: u8, prefixed: bool) -> Option<Instruction> {
@@ -313,7 +317,7 @@ impl Instruction {
                 LoadByteTarget::B,
                 LoadByteSource::D8,
             ))),
-            0x7 => todo!(),
+            0x7 => Some(Instruction::RLCA),
             0x8 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::N16I,
                 LoadWordSource::SP,
@@ -330,7 +334,7 @@ impl Instruction {
                 LoadByteTarget::C,
                 LoadByteSource::D8,
             ))),
-            0xF => todo!(),
+            0xF => Some(Instruction::RRCA),
             0x10 => Some(Instruction::STOP),
             0x11 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::DE,
@@ -347,7 +351,7 @@ impl Instruction {
                 LoadByteTarget::D,
                 LoadByteSource::D8,
             ))),
-            0x17 => todo!(),
+            0x17 => Some(Instruction::RLA),
             0x18 => todo!(),
             0x19 => Some(Instruction::ADDHL(Source::DE)),
             0x1A => Some(Instruction::LD(LoadType::Byte(
@@ -361,7 +365,7 @@ impl Instruction {
                 LoadByteTarget::E,
                 LoadByteSource::D8,
             ))),
-            0x1F => todo!(),
+            0x1F => Some(Instruction::RRA),
             0x20 => todo!(),
             0x21 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::HL,

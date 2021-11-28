@@ -511,6 +511,54 @@ impl CPU {
                 self.sp = new_value;
                 self.pc.wrapping_add(2)
             }
+            Instruction::RLCA => {
+                // 0 0 0 C
+                // Rotate left
+                let mut value = self.registers.a;
+                value = (value << 1) | (value >> 7);
+                self.registers.f.zero = false;
+                self.registers.f.subtract = false;
+                self.registers.f.half_carry = false;
+                self.registers.f.carry = (value & 0x80) != 0;
+                self.registers.a = value;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::RRCA => {
+                // 0 0 0 C
+                // Rotate Right
+                let mut value = self.registers.a;
+                value = (value >> 1) | (value << 7);
+                self.registers.f.zero = false;
+                self.registers.f.subtract = false;
+                self.registers.f.half_carry = false;
+                self.registers.f.carry = (value & 0x01) != 0;
+                self.registers.a = value;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::RLA => {
+                // 0 0 0 C
+                // Rotate left through carry
+                let mut value = self.registers.a;
+                value = (value >> 1) | (self.registers.f.carry as u8);
+                self.registers.f.zero = false;
+                self.registers.f.subtract = false;
+                self.registers.f.half_carry = false;
+                self.registers.f.carry = (value & 0x80) != 0;
+                self.registers.a = value;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::RRA => {
+                // 0 0 0 C
+                // Rotate Right through carry
+                let mut value = self.registers.a;
+                value = (value >> 1) | ((self.registers.f.carry as u8) << 7);
+                self.registers.f.zero = false;
+                self.registers.f.subtract = false;
+                self.registers.f.half_carry = false;
+                self.registers.f.carry = (value & 0x01) != 0;
+                self.registers.a = value;
+                self.pc.wrapping_add(1)
+            }
         }
     }
     fn add(&mut self, value: u8, with_carry: bool) -> u8 {
