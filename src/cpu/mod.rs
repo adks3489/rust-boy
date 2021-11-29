@@ -341,6 +341,7 @@ impl CPU {
                     self.pc.wrapping_add(2)
                 }
             }
+            Instruction::JPHL => self.registers.get_hl(),
             Instruction::LD(load_type) => match load_type {
                 LoadType::Byte(target, source) => {
                     let source_value = match source {
