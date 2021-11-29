@@ -18,6 +18,7 @@ pub enum Instruction {
     INC(Target),
     DEC(Target),
     JP(JumpTest),
+    JR(JumpTest),
     PUSH(StackTarget),
     POP(StackTarget),
     CALL(JumpTest),
@@ -352,7 +353,7 @@ impl Instruction {
                 LoadByteSource::D8,
             ))),
             0x17 => Some(Instruction::RLA),
-            0x18 => todo!(),
+            0x18 => Some(Instruction::JR(JumpTest::Always)),
             0x19 => Some(Instruction::ADDHL(Source::DE)),
             0x1A => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::A,
@@ -366,7 +367,7 @@ impl Instruction {
                 LoadByteSource::D8,
             ))),
             0x1F => Some(Instruction::RRA),
-            0x20 => todo!(),
+            0x20 => Some(Instruction::JR(JumpTest::NotZero)),
             0x21 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::HL,
                 LoadWordSource::D16,
@@ -383,7 +384,7 @@ impl Instruction {
                 LoadByteSource::D8,
             ))),
             0x27 => Some(Instruction::DAA),
-            0x28 => todo!(),
+            0x28 => Some(Instruction::JR(JumpTest::Zero)),
             0x29 => Some(Instruction::ADDHL(Source::HL)),
             0x2A => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::A,
@@ -397,7 +398,7 @@ impl Instruction {
                 LoadByteSource::D8,
             ))),
             0x2F => Some(Instruction::CPL),
-            0x30 => todo!(),
+            0x30 => Some(Instruction::JR(JumpTest::NotCarry)),
             0x31 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::SP,
                 LoadWordSource::D16,
@@ -414,7 +415,7 @@ impl Instruction {
                 LoadByteSource::D8,
             ))),
             0x37 => Some(Instruction::SCF),
-            0x38 => todo!(),
+            0x38 => Some(Instruction::JR(JumpTest::Carry)),
             0x39 => Some(Instruction::ADDHL(Source::SP)),
             0x3A => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::A,

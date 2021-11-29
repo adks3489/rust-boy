@@ -334,6 +334,13 @@ impl CPU {
                 self.pc.wrapping_add(1)
             }
             Instruction::JP(test) => self.jump(self.should_jump(&test)),
+            Instruction::JR(test) => {
+                if self.should_jump(&test) {
+                    self.pc.wrapping_add(self.bus.read_byte(self.pc + 1) as u16)
+                } else {
+                    self.pc.wrapping_add(2)
+                }
+            }
             Instruction::LD(load_type) => match load_type {
                 LoadType::Byte(target, source) => {
                     let source_value = match source {
