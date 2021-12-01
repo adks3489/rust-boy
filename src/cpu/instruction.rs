@@ -31,6 +31,7 @@ pub enum Instruction {
     RRCA,
     RLA,
     RRA,
+    RST(u16),
 }
 impl Instruction {
     pub fn from_byte(byte: u8, prefixed: bool) -> Option<Instruction> {
@@ -754,7 +755,7 @@ impl Instruction {
             0xC4 => Some(Instruction::CALL(JumpTest::NotZero)),
             0xC5 => Some(Instruction::PUSH(StackTarget::BC)),
             0xC6 => Some(Instruction::ADD(ArithmeticTarget::D8)),
-            0xC7 => todo!(),
+            0xC7 => Some(Instruction::RST(0x00)),
             0xC8 => Some(Instruction::RET(JumpTest::Zero)),
             0xC9 => Some(Instruction::RET(JumpTest::Always)),
             0xCA => Some(Instruction::JP(JumpTest::Zero)),
@@ -762,7 +763,7 @@ impl Instruction {
             0xCC => Some(Instruction::CALL(JumpTest::Zero)),
             0xCD => Some(Instruction::CALL(JumpTest::Always)),
             0xCE => Some(Instruction::ADC(Source::D8)),
-            0xCF => todo!(),
+            0xCF => Some(Instruction::RST(0x08)),
             0xD0 => Some(Instruction::RET(JumpTest::NotCarry)),
             0xD1 => Some(Instruction::POP(StackTarget::DE)),
             0xD2 => Some(Instruction::JP(JumpTest::NotCarry)),
@@ -770,7 +771,7 @@ impl Instruction {
             0xD4 => Some(Instruction::CALL(JumpTest::NotCarry)),
             0xD5 => Some(Instruction::PUSH(StackTarget::DE)),
             0xD6 => Some(Instruction::SUB(Source::D8)),
-            0xD7 => todo!(),
+            0xD7 => Some(Instruction::RST(0x10)),
             0xD8 => Some(Instruction::RET(JumpTest::Carry)),
             0xD9 => todo!(),
             0xDA => Some(Instruction::JP(JumpTest::Carry)),
@@ -778,7 +779,7 @@ impl Instruction {
             0xDC => Some(Instruction::CALL(JumpTest::Carry)),
             0xDD => todo!(),
             0xDE => Some(Instruction::SBC(Source::D8)),
-            0xDF => todo!(),
+            0xDF => Some(Instruction::RST(0x18)),
             0xE0 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::N8I,
                 LoadByteSource::A,
@@ -792,7 +793,7 @@ impl Instruction {
             0xE4 => todo!(),
             0xE5 => Some(Instruction::PUSH(StackTarget::HL)),
             0xE6 => Some(Instruction::AND(Source::D8)),
-            0xE7 => todo!(),
+            0xE7 => Some(Instruction::RST(0x20)),
             0xE8 => Some(Instruction::ADDSP),
             0xE9 => Some(Instruction::JPHL),
             0xEA => Some(Instruction::LD(LoadType::Byte(
@@ -803,7 +804,7 @@ impl Instruction {
             0xEC => todo!(),
             0xED => todo!(),
             0xEE => Some(Instruction::XOR(Source::D8)),
-            0xEF => todo!(),
+            0xEF => Some(Instruction::RST(0x28)),
             0xF0 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::A,
                 LoadByteSource::N8I,
@@ -817,7 +818,7 @@ impl Instruction {
             0xF4 => todo!(),
             0xF5 => Some(Instruction::PUSH(StackTarget::AF)),
             0xF6 => Some(Instruction::OR(Source::D8)),
-            0xF7 => todo!(),
+            0xF7 => Some(Instruction::RST(0x30)),
             0xF8 => Some(Instruction::LD(LoadType::HLFromSPN)),
             0xF9 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::SP,
@@ -831,7 +832,7 @@ impl Instruction {
             0xFC => todo!(),
             0xFD => todo!(),
             0xFE => todo!(),
-            0xFF => todo!(),
+            0xFF => Some(Instruction::RST(0x38)),
             _ => None,
         }
     }

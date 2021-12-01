@@ -5,8 +5,8 @@ use registers::Registers;
 
 struct CPU {
     registers: Registers,
-    pc: u16,
-    sp: u16,
+    pc: u16, // program counter
+    sp: u16, // stack pointer
     bus: MemoryBus,
     is_halted: bool,
 }
@@ -566,6 +566,10 @@ impl CPU {
                 self.registers.f.carry = (value & 0x01) != 0;
                 self.registers.a = value;
                 self.pc.wrapping_add(1)
+            }
+            Instruction::RST(addr) => {
+                self.push(self.pc);
+                addr
             }
         }
     }
