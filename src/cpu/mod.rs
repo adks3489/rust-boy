@@ -9,6 +9,7 @@ struct CPU {
     sp: u16, // stack pointer
     bus: MemoryBus,
     is_halted: bool,
+    interrupts_enabled: bool,
 }
 struct MemoryBus {
     memory: [u8; 0xFFFF],
@@ -38,6 +39,7 @@ impl CPU {
             sp: 0,
             bus: MemoryBus::new(),
             is_halted: false,
+            interrupts_enabled: true,
         }
     }
     fn step(&mut self) {
@@ -477,6 +479,10 @@ impl CPU {
             }
             Instruction::CALL(test) => self.call(self.should_jump(&test)),
             Instruction::RET(test) => self.return_(self.should_jump(&test)),
+            Instruction::RETI => {
+                self.interrupts_enabled = true;
+                self.return_(true)
+            }
             Instruction::NOP => self.pc.wrapping_add(1),
             Instruction::HALT => {
                 self.is_halted = true;
