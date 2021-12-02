@@ -33,6 +33,8 @@ pub enum Instruction {
     RLA,
     RRA,
     RST(u16),
+    DI,
+    EI,
 }
 impl Instruction {
     pub fn from_byte(byte: u8, prefixed: bool) -> Option<Instruction> {
@@ -760,7 +762,6 @@ impl Instruction {
             0xC8 => Some(Instruction::RET(JumpTest::Zero)),
             0xC9 => Some(Instruction::RET(JumpTest::Always)),
             0xCA => Some(Instruction::JP(JumpTest::Zero)),
-            0xCB => todo!(),
             0xCC => Some(Instruction::CALL(JumpTest::Zero)),
             0xCD => Some(Instruction::CALL(JumpTest::Always)),
             0xCE => Some(Instruction::ADC(Source::D8)),
@@ -787,8 +788,6 @@ impl Instruction {
                 LoadByteTarget::CI,
                 LoadByteSource::A,
             ))),
-            0xE3 => todo!(),
-            0xE4 => todo!(),
             0xE5 => Some(Instruction::PUSH(StackTarget::HL)),
             0xE6 => Some(Instruction::AND(Source::D8)),
             0xE7 => Some(Instruction::RST(0x20)),
@@ -798,9 +797,6 @@ impl Instruction {
                 LoadByteTarget::N16I,
                 LoadByteSource::A,
             ))),
-            0xEB => todo!(),
-            0xEC => todo!(),
-            0xED => todo!(),
             0xEE => Some(Instruction::XOR(Source::D8)),
             0xEF => Some(Instruction::RST(0x28)),
             0xF0 => Some(Instruction::LD(LoadType::Byte(
@@ -812,8 +808,7 @@ impl Instruction {
                 LoadByteTarget::A,
                 LoadByteSource::CI,
             ))),
-            0xF3 => todo!(),
-            0xF4 => todo!(),
+            0xF3 => Some(Instruction::DI),
             0xF5 => Some(Instruction::PUSH(StackTarget::AF)),
             0xF6 => Some(Instruction::OR(Source::D8)),
             0xF7 => Some(Instruction::RST(0x30)),
@@ -826,10 +821,8 @@ impl Instruction {
                 LoadByteTarget::A,
                 LoadByteSource::N16I,
             ))),
-            0xFB => todo!(),
-            0xFC => todo!(),
-            0xFD => todo!(),
-            0xFE => todo!(),
+            0xFB => Some(Instruction::EI),
+            0xFE => Some(Instruction::CP(Target::D8)),
             0xFF => Some(Instruction::RST(0x38)),
             _ => None,
         }

@@ -577,6 +577,14 @@ impl CPU {
                 self.push(self.pc);
                 addr
             }
+            Instruction::DI => {
+                self.interrupts_enabled = false;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::EI => {
+                self.interrupts_enabled = true;
+                self.pc.wrapping_add(1)
+            }
         }
     }
     fn add(&mut self, value: u8, with_carry: bool) -> u8 {
