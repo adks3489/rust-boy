@@ -535,37 +535,25 @@ impl CPU {
             Instruction::RLCA => {
                 // 0 0 0 C
                 // Rotate left
-                self.registers.a = self.rotate_left(self.registers.a);
+                update_register!(self, a => rotate_left);
                 self.pc.wrapping_add(1)
             }
             Instruction::RRCA => {
                 // 0 0 0 C
                 // Rotate Right
-                self.registers.a = self.rotate_right(self.registers.a);
+                update_register!(self, a => rotate_right);
                 self.pc.wrapping_add(1)
             }
             Instruction::RLA => {
                 // 0 0 0 C
                 // Rotate left through carry
-                let mut value = self.registers.a;
-                value = (value >> 1) | (self.registers.f.carry as u8);
-                self.registers.f.zero = false;
-                self.registers.f.subtract = false;
-                self.registers.f.half_carry = false;
-                self.registers.f.carry = (value & 0x80) != 0;
-                self.registers.a = value;
+                update_register!(self, a => rotate_left_with_carry);
                 self.pc.wrapping_add(1)
             }
             Instruction::RRA => {
                 // 0 0 0 C
                 // Rotate Right through carry
-                let mut value = self.registers.a;
-                value = (value >> 1) | ((self.registers.f.carry as u8) << 7);
-                self.registers.f.zero = false;
-                self.registers.f.subtract = false;
-                self.registers.f.half_carry = false;
-                self.registers.f.carry = (value & 0x01) != 0;
-                self.registers.a = value;
+                update_register!(self, a => rotate_right_with_carry);
                 self.pc.wrapping_add(1)
             }
             Instruction::RST(addr) => {
@@ -596,7 +584,7 @@ impl CPU {
                     }
                     _ => panic!("unsupported RLC target"),
                 };
-                self.pc.wrapping_add(1)
+                self.pc.wrapping_add(2)
             }
             Instruction::RRC(target) => {
                 match target {
@@ -614,7 +602,43 @@ impl CPU {
                     }
                     _ => panic!("unsupported RRC target"),
                 };
-                self.pc.wrapping_add(1)
+                self.pc.wrapping_add(2)
+            }
+            Instruction::RL(target) => {
+                match target {
+                    Target::A => update_register!(self, a => rotate_left_with_carry),
+                    Target::B => update_register!(self, b => rotate_left_with_carry),
+                    Target::C => update_register!(self, c => rotate_left_with_carry),
+                    Target::D => update_register!(self, d => rotate_left_with_carry),
+                    Target::E => update_register!(self, e => rotate_left_with_carry),
+                    Target::H => update_register!(self, h => rotate_left_with_carry),
+                    Target::L => update_register!(self, l => rotate_left_with_carry),
+                    Target::IndirectHL => {
+                        let addr = self.registers.get_hl();
+                        let val = self.rotate_left_with_carry(self.bus.read_byte(addr));
+                        self.bus.write_byte(addr, val)
+                    }
+                    _ => panic!("unsupported RL target"),
+                };
+                self.pc.wrapping_add(2)
+            }
+            Instruction::RR(target) => {
+                match target {
+                    Target::A => update_register!(self, a => rotate_right_with_carry),
+                    Target::B => update_register!(self, b => rotate_right_with_carry),
+                    Target::C => update_register!(self, c => rotate_right_with_carry),
+                    Target::D => update_register!(self, d => rotate_right_with_carry),
+                    Target::E => update_register!(self, e => rotate_right_with_carry),
+                    Target::H => update_register!(self, h => rotate_right_with_carry),
+                    Target::L => update_register!(self, l => rotate_right_with_carry),
+                    Target::IndirectHL => {
+                        let addr = self.registers.get_hl();
+                        let val = self.rotate_right_with_carry(self.bus.read_byte(addr));
+                        self.bus.write_byte(addr, val)
+                    }
+                    _ => panic!("unsupported RR target"),
+                };
+                self.pc.wrapping_add(2)
             }
         }
     }
@@ -758,6 +782,22 @@ impl CPU {
     }
     fn rotate_right(&mut self, value: u8) -> u8 {
         let new_value = (value >> 1) | (value << 7);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = (new_value & 0x01) != 0;
+        new_value
+    }
+    fn rotate_left_with_carry(&mut self, value: u8) -> u8 {
+        let new_value = (value << 1) | (self.registers.f.carry as u8);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = (new_value & 0x80) != 0;
+        new_value
+    }
+    fn rotate_right_with_carry(&mut self, value: u8) -> u8 {
+        let new_value = (value >> 1) | ((self.registers.f.carry as u8) << 7);
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
         self.registers.f.half_carry = false;
