@@ -640,6 +640,42 @@ impl CPU {
                 };
                 self.pc.wrapping_add(2)
             }
+            Instruction::SLA(target) => {
+                match target {
+                    Target::A => update_register!(self, a => shift_left_arithmetic),
+                    Target::B => update_register!(self, b => shift_left_arithmetic),
+                    Target::C => update_register!(self, c => shift_left_arithmetic),
+                    Target::D => update_register!(self, d => shift_left_arithmetic),
+                    Target::E => update_register!(self, e => shift_left_arithmetic),
+                    Target::H => update_register!(self, h => shift_left_arithmetic),
+                    Target::L => update_register!(self, l => shift_left_arithmetic),
+                    Target::IndirectHL => {
+                        let addr = self.registers.get_hl();
+                        let val = self.shift_left_arithmetic(self.bus.read_byte(addr));
+                        self.bus.write_byte(addr, val)
+                    }
+                    _ => panic!("unsupported SLA target"),
+                };
+                self.pc.wrapping_add(2)
+            }
+            Instruction::SRA(target) => {
+                match target {
+                    Target::A => update_register!(self, a => shift_right_arithmetic),
+                    Target::B => update_register!(self, b => shift_right_arithmetic),
+                    Target::C => update_register!(self, c => shift_right_arithmetic),
+                    Target::D => update_register!(self, d => shift_right_arithmetic),
+                    Target::E => update_register!(self, e => shift_right_arithmetic),
+                    Target::H => update_register!(self, h => shift_right_arithmetic),
+                    Target::L => update_register!(self, l => shift_right_arithmetic),
+                    Target::IndirectHL => {
+                        let addr = self.registers.get_hl();
+                        let val = self.shift_right_arithmetic(self.bus.read_byte(addr));
+                        self.bus.write_byte(addr, val)
+                    }
+                    _ => panic!("unsupported SRA target"),
+                };
+                self.pc.wrapping_add(2)
+            }
         }
     }
     fn add(&mut self, value: u8, with_carry: bool) -> u8 {
@@ -798,6 +834,22 @@ impl CPU {
     }
     fn rotate_right_with_carry(&mut self, value: u8) -> u8 {
         let new_value = (value >> 1) | ((self.registers.f.carry as u8) << 7);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = (new_value & 0x01) != 0;
+        new_value
+    }
+    fn shift_left_arithmetic(&mut self, value: u8) -> u8 {
+        let new_value = value << 1;
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = (new_value & 0x80) != 0;
+        new_value
+    }
+    fn shift_right_arithmetic(&mut self, value: u8) -> u8 {
+        let new_value = value >> 1;
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
         self.registers.f.half_carry = false;
