@@ -31,6 +31,13 @@ impl MemoryBus {
         self.memory[address as usize + 1] = ((word & 0xFF00) >> 8) as u8;
     }
 }
+macro_rules! update_register {
+    // update_register!(self: a => action)
+    // self.registers.a = self.action(self.registers.a)
+    ($self:ident, $reg:ident => $action:ident) => {{
+        $self.registers.$reg = $self.$action($self.registers.$reg)
+    }};
+}
 impl CPU {
     fn new() -> Self {
         CPU {
@@ -575,13 +582,13 @@ impl CPU {
             }
             Instruction::RLC(target) => {
                 match target {
-                    Target::A => self.registers.a = self.rotate_left(self.registers.a),
-                    Target::B => self.registers.b = self.rotate_left(self.registers.b),
-                    Target::C => self.registers.c = self.rotate_left(self.registers.c),
-                    Target::D => self.registers.d = self.rotate_left(self.registers.d),
-                    Target::E => self.registers.e = self.rotate_left(self.registers.e),
-                    Target::H => self.registers.h = self.rotate_left(self.registers.h),
-                    Target::L => self.registers.l = self.rotate_left(self.registers.l),
+                    Target::A => update_register!(self, a => rotate_left),
+                    Target::B => update_register!(self, b => rotate_left),
+                    Target::C => update_register!(self, c => rotate_left),
+                    Target::D => update_register!(self, d => rotate_left),
+                    Target::E => update_register!(self, e => rotate_left),
+                    Target::H => update_register!(self, h => rotate_left),
+                    Target::L => update_register!(self, l => rotate_left),
                     Target::IndirectHL => {
                         let addr = self.registers.get_hl();
                         let val = self.rotate_left(self.bus.read_byte(addr));
@@ -593,13 +600,13 @@ impl CPU {
             }
             Instruction::RRC(target) => {
                 match target {
-                    Target::A => self.registers.a = self.rotate_right(self.registers.a),
-                    Target::B => self.registers.b = self.rotate_right(self.registers.b),
-                    Target::C => self.registers.c = self.rotate_right(self.registers.c),
-                    Target::D => self.registers.d = self.rotate_right(self.registers.d),
-                    Target::E => self.registers.e = self.rotate_right(self.registers.e),
-                    Target::H => self.registers.h = self.rotate_right(self.registers.h),
-                    Target::L => self.registers.l = self.rotate_right(self.registers.l),
+                    Target::A => update_register!(self, a => rotate_right),
+                    Target::B => update_register!(self, b => rotate_right),
+                    Target::C => update_register!(self, c => rotate_right),
+                    Target::D => update_register!(self, d => rotate_right),
+                    Target::E => update_register!(self, e => rotate_right),
+                    Target::H => update_register!(self, h => rotate_right),
+                    Target::L => update_register!(self, l => rotate_right),
                     Target::IndirectHL => {
                         let addr = self.registers.get_hl();
                         let val = self.rotate_right(self.bus.read_byte(addr));
