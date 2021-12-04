@@ -528,25 +528,13 @@ impl CPU {
             Instruction::RLCA => {
                 // 0 0 0 C
                 // Rotate left
-                let mut value = self.registers.a;
-                value = (value << 1) | (value >> 7);
-                self.registers.f.zero = false;
-                self.registers.f.subtract = false;
-                self.registers.f.half_carry = false;
-                self.registers.f.carry = (value & 0x80) != 0;
-                self.registers.a = value;
+                self.registers.a = self.rotate_left(self.registers.a);
                 self.pc.wrapping_add(1)
             }
             Instruction::RRCA => {
                 // 0 0 0 C
                 // Rotate Right
-                let mut value = self.registers.a;
-                value = (value >> 1) | (value << 7);
-                self.registers.f.zero = false;
-                self.registers.f.subtract = false;
-                self.registers.f.half_carry = false;
-                self.registers.f.carry = (value & 0x01) != 0;
-                self.registers.a = value;
+                self.registers.a = self.rotate_right(self.registers.a);
                 self.pc.wrapping_add(1)
             }
             Instruction::RLA => {
@@ -583,6 +571,42 @@ impl CPU {
             }
             Instruction::EI => {
                 self.interrupts_enabled = true;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::RLC(target) => {
+                match target {
+                    Target::A => self.registers.a = self.rotate_left(self.registers.a),
+                    Target::B => self.registers.b = self.rotate_left(self.registers.b),
+                    Target::C => self.registers.c = self.rotate_left(self.registers.c),
+                    Target::D => self.registers.d = self.rotate_left(self.registers.d),
+                    Target::E => self.registers.e = self.rotate_left(self.registers.e),
+                    Target::H => self.registers.h = self.rotate_left(self.registers.h),
+                    Target::L => self.registers.l = self.rotate_left(self.registers.l),
+                    Target::IndirectHL => {
+                        let addr = self.registers.get_hl();
+                        let val = self.rotate_left(self.bus.read_byte(addr));
+                        self.bus.write_byte(addr, val)
+                    }
+                    _ => panic!("unsupported RLC target"),
+                };
+                self.pc.wrapping_add(1)
+            }
+            Instruction::RRC(target) => {
+                match target {
+                    Target::A => self.registers.a = self.rotate_right(self.registers.a),
+                    Target::B => self.registers.b = self.rotate_right(self.registers.b),
+                    Target::C => self.registers.c = self.rotate_right(self.registers.c),
+                    Target::D => self.registers.d = self.rotate_right(self.registers.d),
+                    Target::E => self.registers.e = self.rotate_right(self.registers.e),
+                    Target::H => self.registers.h = self.rotate_right(self.registers.h),
+                    Target::L => self.registers.l = self.rotate_right(self.registers.l),
+                    Target::IndirectHL => {
+                        let addr = self.registers.get_hl();
+                        let val = self.rotate_right(self.bus.read_byte(addr));
+                        self.bus.write_byte(addr, val)
+                    }
+                    _ => panic!("unsupported RRC target"),
+                };
                 self.pc.wrapping_add(1)
             }
         }
@@ -716,5 +740,21 @@ impl CPU {
         self.registers.f.subtract = true;
         self.registers.f.half_carry = (0x0f & self.registers.a) > (0x0f & value);
         self.registers.f.carry = self.registers.a < value;
+    }
+    fn rotate_left(&mut self, value: u8) -> u8 {
+        let new_value = (value << 1) | (value >> 7);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = (new_value & 0x80) != 0;
+        new_value
+    }
+    fn rotate_right(&mut self, value: u8) -> u8 {
+        let new_value = (value >> 1) | (value << 7);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = (new_value & 0x01) != 0;
+        new_value
     }
 }
