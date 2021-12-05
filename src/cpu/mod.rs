@@ -694,6 +694,24 @@ impl CPU {
                 };
                 self.pc.wrapping_add(2)
             }
+            Instruction::SRL(target) => {
+                match target {
+                    Target::A => update_register!(self, a => shift_right_logical),
+                    Target::B => update_register!(self, b => shift_right_logical),
+                    Target::C => update_register!(self, c => shift_right_logical),
+                    Target::D => update_register!(self, d => shift_right_logical),
+                    Target::E => update_register!(self, e => shift_right_logical),
+                    Target::H => update_register!(self, h => shift_right_logical),
+                    Target::L => update_register!(self, l => shift_right_logical),
+                    Target::IndirectHL => {
+                        let addr = self.registers.get_hl();
+                        let val = self.shift_right_logical(self.bus.read_byte(addr));
+                        self.bus.write_byte(addr, val)
+                    }
+                    _ => panic!("unsupported SRL target"),
+                };
+                self.pc.wrapping_add(2)
+            }
         }
     }
     fn add(&mut self, value: u8, with_carry: bool) -> u8 {
@@ -867,7 +885,7 @@ impl CPU {
         new_value
     }
     fn shift_right_arithmetic(&mut self, value: u8) -> u8 {
-        let new_value = value >> 1;
+        let new_value = (value & 0x80) | value >> 1;
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
         self.registers.f.half_carry = false;
@@ -880,6 +898,14 @@ impl CPU {
         self.registers.f.subtract = false;
         self.registers.f.half_carry = false;
         self.registers.f.carry = false;
+        new_value
+    }
+    fn shift_right_logical(&mut self, value: u8) -> u8 {
+        let new_value = value >> 1;
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = (new_value & 0x01) != 0;
         new_value
     }
 }
