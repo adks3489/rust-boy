@@ -676,6 +676,24 @@ impl CPU {
                 };
                 self.pc.wrapping_add(2)
             }
+            Instruction::SWAP(target) => {
+                match target {
+                    Target::A => update_register!(self, a => swap_nibbles),
+                    Target::B => update_register!(self, b => swap_nibbles),
+                    Target::C => update_register!(self, c => swap_nibbles),
+                    Target::D => update_register!(self, d => swap_nibbles),
+                    Target::E => update_register!(self, e => swap_nibbles),
+                    Target::H => update_register!(self, h => swap_nibbles),
+                    Target::L => update_register!(self, l => swap_nibbles),
+                    Target::IndirectHL => {
+                        let addr = self.registers.get_hl();
+                        let val = self.swap_nibbles(self.bus.read_byte(addr));
+                        self.bus.write_byte(addr, val)
+                    }
+                    _ => panic!("unsupported SWAP target"),
+                };
+                self.pc.wrapping_add(2)
+            }
         }
     }
     fn add(&mut self, value: u8, with_carry: bool) -> u8 {
@@ -854,6 +872,14 @@ impl CPU {
         self.registers.f.subtract = false;
         self.registers.f.half_carry = false;
         self.registers.f.carry = (new_value & 0x01) != 0;
+        new_value
+    }
+    fn swap_nibbles(&mut self, value: u8) -> u8 {
+        let new_value = ((value & 0xf) << 4) | ((value & 0xf0) >> 4);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = false;
         new_value
     }
 }
