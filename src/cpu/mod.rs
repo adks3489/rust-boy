@@ -728,6 +728,42 @@ impl CPU {
                 };
                 self.pc.wrapping_add(2)
             }
+            Instruction::RES(offset, target) => {
+                match target {
+                    Target::A => self.registers.a = self.bit_reset(self.registers.a, offset),
+                    Target::B => self.registers.b = self.bit_reset(self.registers.b, offset),
+                    Target::C => self.registers.c = self.bit_reset(self.registers.c, offset),
+                    Target::D => self.registers.d = self.bit_reset(self.registers.d, offset),
+                    Target::E => self.registers.e = self.bit_reset(self.registers.e, offset),
+                    Target::H => self.registers.h = self.bit_reset(self.registers.h, offset),
+                    Target::L => self.registers.l = self.bit_reset(self.registers.l, offset),
+                    Target::IndirectHL => {
+                        let addr = self.registers.get_hl();
+                        let val = self.bit_reset(self.bus.read_byte(addr), offset);
+                        self.bus.write_byte(addr, val)
+                    }
+                    _ => panic!("unsupported RES target"),
+                };
+                self.pc.wrapping_add(2)
+            }
+            Instruction::SET(offset, target) => {
+                match target {
+                    Target::A => self.registers.a = self.bit_set(self.registers.a, offset),
+                    Target::B => self.registers.b = self.bit_set(self.registers.b, offset),
+                    Target::C => self.registers.c = self.bit_set(self.registers.c, offset),
+                    Target::D => self.registers.d = self.bit_set(self.registers.d, offset),
+                    Target::E => self.registers.e = self.bit_set(self.registers.e, offset),
+                    Target::H => self.registers.h = self.bit_set(self.registers.h, offset),
+                    Target::L => self.registers.l = self.bit_set(self.registers.l, offset),
+                    Target::IndirectHL => {
+                        let addr = self.registers.get_hl();
+                        let val = self.bit_set(self.bus.read_byte(addr), offset);
+                        self.bus.write_byte(addr, val)
+                    }
+                    _ => panic!("unsupported SET target"),
+                };
+                self.pc.wrapping_add(2)
+            }
         }
     }
     fn add(&mut self, value: u8, with_carry: bool) -> u8 {
@@ -930,5 +966,11 @@ impl CPU {
         self.registers.f.zero = test == 0;
         self.registers.f.subtract = false;
         self.registers.f.half_carry = true;
+    }
+    fn bit_reset(&mut self, value: u8, offset: u8) -> u8 {
+        value & !(1 << offset)
+    }
+    fn bit_set(&mut self, value: u8, offset: u8) -> u8 {
+        value | (1 << offset)
     }
 }
