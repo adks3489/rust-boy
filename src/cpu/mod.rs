@@ -712,6 +712,22 @@ impl CPU {
                 };
                 self.pc.wrapping_add(2)
             }
+            Instruction::BIT(offset, target) => {
+                match target {
+                    Target::A => self.bit_test(self.registers.a, offset),
+                    Target::B => self.bit_test(self.registers.b, offset),
+                    Target::C => self.bit_test(self.registers.c, offset),
+                    Target::D => self.bit_test(self.registers.d, offset),
+                    Target::E => self.bit_test(self.registers.e, offset),
+                    Target::H => self.bit_test(self.registers.h, offset),
+                    Target::L => self.bit_test(self.registers.l, offset),
+                    Target::IndirectHL => {
+                        self.bit_test(self.bus.read_byte(self.registers.get_hl()), offset)
+                    }
+                    _ => panic!("unsupported BIT target"),
+                };
+                self.pc.wrapping_add(2)
+            }
         }
     }
     fn add(&mut self, value: u8, with_carry: bool) -> u8 {
@@ -907,5 +923,12 @@ impl CPU {
         self.registers.f.half_carry = false;
         self.registers.f.carry = (new_value & 0x01) != 0;
         new_value
+    }
+    fn bit_test(&mut self, value: u8, offset: u8) {
+        // Z 0 1 -
+        let test = (value >> offset) & 0x1;
+        self.registers.f.zero = test == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = true;
     }
 }
