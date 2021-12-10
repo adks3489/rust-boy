@@ -3,7 +3,7 @@ pub mod registers;
 use instruction::*;
 use registers::Registers;
 
-struct CPU {
+pub struct CPU {
     registers: Registers,
     pc: u16, // program counter
     sp: u16, // stack pointer
@@ -15,10 +15,13 @@ struct MemoryBus {
     memory: [u8; 0xFFFF],
 }
 impl MemoryBus {
-    fn new() -> Self {
-        MemoryBus {
+    fn new(boot_rom: Vec<u8>) -> Self {
+        let mut bus = MemoryBus {
             memory: [0; 0xFFFF],
-        }
+        };
+        let boot_rom: [u8; 256] = boot_rom.try_into().unwrap();
+        bus.memory[0..256].copy_from_slice(&boot_rom);
+        bus
     }
     fn read_byte(&self, address: u16) -> u8 {
         self.memory[address as usize]
@@ -39,17 +42,17 @@ macro_rules! update_register {
     }};
 }
 impl CPU {
-    fn new() -> Self {
+    pub fn new(boot_rom: Vec<u8>) -> Self {
         CPU {
             registers: Registers::new(),
             pc: 0,
             sp: 0,
-            bus: MemoryBus::new(),
+            bus: MemoryBus::new(boot_rom),
             is_halted: false,
             interrupts_enabled: true,
         }
     }
-    fn step(&mut self) {
+    pub fn step(&mut self) {
         let mut instruction_byte = self.bus.read_byte(self.pc);
         let prefixed = instruction_byte == 0xCB;
         if prefixed {
@@ -65,7 +68,7 @@ impl CPU {
     fn read_next_word(&self) -> u16 {
         let lsb = self.bus.read_byte(self.pc + 1);
         let msb = self.bus.read_byte(self.pc + 2);
-        (msb << 8) as u16 | lsb as u16
+        ((msb as u16) << 8) | lsb as u16
     }
     fn execute(&mut self, instruction: Instruction) -> u16 {
         if self.is_halted {
