@@ -1,5 +1,7 @@
 const SCREEN_WIDTH: usize = 160;
 const SCREEN_HEIGHT: usize = 144;
+pub const RAM_SIZE: usize = 0x2000;
+pub const SPRITE_SIZE: usize = 0xA0;
 
 pub struct GPU {
     pub canvas: [u32; SCREEN_WIDTH * SCREEN_HEIGHT],
