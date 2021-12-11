@@ -1,38 +1,16 @@
 pub mod instruction;
 pub mod registers;
+use crate::memory_bus::MemoryBus;
 use instruction::*;
 use registers::Registers;
 
-pub struct CPU {
+pub struct CPU<'a> {
     registers: Registers,
     pc: u16, // program counter
     sp: u16, // stack pointer
-    bus: MemoryBus,
+    bus: &'a mut MemoryBus<'a>,
     is_halted: bool,
     interrupts_enabled: bool,
-}
-struct MemoryBus {
-    memory: [u8; 0xFFFF],
-}
-impl MemoryBus {
-    fn new(boot_rom: Vec<u8>) -> Self {
-        let mut bus = MemoryBus {
-            memory: [0; 0xFFFF],
-        };
-        let boot_rom: [u8; 256] = boot_rom.try_into().unwrap();
-        bus.memory[0..256].copy_from_slice(&boot_rom);
-        bus
-    }
-    fn read_byte(&self, address: u16) -> u8 {
-        self.memory[address as usize]
-    }
-    fn write_byte(&mut self, address: u16, byte: u8) {
-        self.memory[address as usize] = byte;
-    }
-    fn write_word(&mut self, address: u16, word: u16) {
-        self.memory[address as usize] = (word & 0xFF) as u8;
-        self.memory[address as usize + 1] = ((word & 0xFF00) >> 8) as u8;
-    }
 }
 macro_rules! update_register {
     // update_register!(self: a => action)
@@ -41,13 +19,13 @@ macro_rules! update_register {
         $self.registers.$reg = $self.$action($self.registers.$reg)
     }};
 }
-impl CPU {
-    pub fn new(boot_rom: Vec<u8>) -> Self {
+impl<'a> CPU<'a> {
+    pub fn new(memory_bus: &'a mut MemoryBus<'a>) -> Self {
         CPU {
             registers: Registers::new(),
             pc: 0,
             sp: 0,
-            bus: MemoryBus::new(boot_rom),
+            bus: memory_bus,
             is_halted: false,
             interrupts_enabled: true,
         }
