@@ -45,7 +45,16 @@ impl GPU {
                     }
                 }
             }
-            ReadMode::VerticalBlank => todo!(),
+            ReadMode::VerticalBlank => {
+                if self.clock >= 456 {
+                    self.clock = 0;
+                    self.line += 1;
+                    if self.line > 153 {
+                        self.read_mode = ReadMode::ScanlineOAM;
+                        self.line = 0;
+                    }
+                }
+            }
             ReadMode::ScanlineOAM => {
                 if self.clock >= 80 {
                     self.clock = 0;
