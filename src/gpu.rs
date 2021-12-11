@@ -5,7 +5,8 @@ pub const SPRITE_SIZE: usize = 0xA0;
 
 pub struct GPU {
     pub canvas: [u32; SCREEN_WIDTH * SCREEN_HEIGHT],
-    // VideoMemory, Sprite Attribute Memory
+    pub ram: [u8; RAM_SIZE],
+    pub sprite: [u8; SPRITE_SIZE],
     read_mode: ReadMode,
     clock: u32,
     line: u32,
@@ -22,6 +23,8 @@ impl GPU {
     pub fn new() -> Self {
         GPU {
             canvas: [0; SCREEN_WIDTH * SCREEN_HEIGHT],
+            ram: [0; RAM_SIZE],
+            sprite: [0; SPRITE_SIZE],
             read_mode: ReadMode::HorizontalBlank,
             clock: 0,
             line: 0,

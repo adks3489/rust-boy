@@ -14,8 +14,8 @@ fn read_buffer(path: &str) -> std::io::Result<Vec<u8>> {
 
 fn main() {
     let boot_rom = read_buffer("dmg_boot.bin").expect("Open boot_rom failed");
-    let gpu = GPU::new();
-    let mut memory_bus = MemoryBus::new(boot_rom, &gpu);
+    let mut gpu = GPU::new();
+    let mut memory_bus = MemoryBus::new(boot_rom, &mut gpu.ram, &mut gpu.sprite);
     let mut cpu = CPU::new(&mut memory_bus);
 
     const WIDTH: usize = 160;

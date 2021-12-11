@@ -38,17 +38,23 @@ pub struct MemoryBus<'a> {
     cartridge_rom: [u8; CARTRIDGE_ROM_SIZE],
     memory: [u8; WORKING_RAM_SIZE],
     cartridge_ram: [u8; CARTRIDGE_RAM_SIZE],
-    gpu: &'a GPU,
+    gpu_ram: &'a mut [u8; gpu::RAM_SIZE],
+    gpu_sprite: &'a mut [u8; gpu::SPRITE_SIZE],
 }
 
 impl<'a> MemoryBus<'a> {
-    pub fn new(boot_rom: Vec<u8>, gpu: &'a GPU) -> Self {
+    pub fn new(
+        boot_rom: Vec<u8>,
+        vram: &'a mut [u8; gpu::RAM_SIZE],
+        gpu_sprite: &'a mut [u8; gpu::SPRITE_SIZE],
+    ) -> Self {
         MemoryBus {
             boot_rom: boot_rom.try_into().unwrap(),
             cartridge_rom: [0; CARTRIDGE_ROM_SIZE],
             memory: [0; WORKING_RAM_SIZE],
             cartridge_ram: [0; CARTRIDGE_RAM_SIZE],
-            gpu: gpu,
+            gpu_ram: vram,
+            gpu_sprite,
         }
     }
     pub fn read_byte(&self, address: u16) -> u8 {
@@ -58,10 +64,12 @@ impl<'a> MemoryBus<'a> {
             CARTRIDGE_ROM_FIRST..=CARTRIDGE_ROM_LAST => {
                 self.cartridge_rom[address - CARTRIDGE_ROM_FIRST]
             }
-            GRAPHICS_RAM_FIRST..=GRAPHICS_RAM_LAST => panic!(),
+            GRAPHICS_RAM_FIRST..=GRAPHICS_RAM_LAST => self.gpu_ram[address - GRAPHICS_RAM_FIRST],
             CARTRIDGE_RAM_FIRST..=CARTRIDGE_RAM_LAST => panic!(),
             WORKING_RAM_FIRST..=WORKING_RAM_LAST => self.memory[address - WORKING_RAM_FIRST],
-            GRAPHICS_SPRITE_FIRST..=GRAPHICS_SPRITE_LAST => panic!(),
+            GRAPHICS_SPRITE_FIRST..=GRAPHICS_SPRITE_LAST => {
+                self.gpu_sprite[address - GRAPHICS_SPRITE_FIRST]
+            }
             IO_FIRST..=IO_LAST => panic!(),
             ZERO_PAGE_FIRST..=ZERO_PAGE_LAST => panic!(),
             _ => panic!("invalid read address: {}", address),
@@ -70,10 +78,14 @@ impl<'a> MemoryBus<'a> {
     pub fn write_byte(&mut self, address: u16, byte: u8) {
         let address = address as usize;
         match address {
-            GRAPHICS_RAM_FIRST..=GRAPHICS_RAM_LAST => panic!(),
+            GRAPHICS_RAM_FIRST..=GRAPHICS_RAM_LAST => {
+                self.gpu_ram[address - GRAPHICS_RAM_FIRST] = byte
+            }
             CARTRIDGE_RAM_FIRST..=CARTRIDGE_RAM_LAST => panic!(),
             WORKING_RAM_FIRST..=WORKING_RAM_LAST => self.memory[address - WORKING_RAM_FIRST] = byte,
-            GRAPHICS_SPRITE_FIRST..=GRAPHICS_SPRITE_LAST => panic!(),
+            GRAPHICS_SPRITE_FIRST..=GRAPHICS_SPRITE_LAST => {
+                self.gpu_sprite[address - GRAPHICS_SPRITE_FIRST] = byte
+            }
             IO_FIRST..=IO_LAST => panic!(),
             ZERO_PAGE_FIRST..=ZERO_PAGE_LAST => panic!(),
             _ => panic!("invalid write address: {}", address),
@@ -84,13 +96,19 @@ impl<'a> MemoryBus<'a> {
         let lsb = (word & 0xFF) as u8;
         let msb = ((word & 0xFF00) >> 8) as u8;
         match address {
-            GRAPHICS_RAM_FIRST..=GRAPHICS_RAM_LAST => panic!(),
+            GRAPHICS_RAM_FIRST..=GRAPHICS_RAM_LAST => {
+                self.gpu_ram[address - GRAPHICS_RAM_FIRST] = lsb;
+                self.gpu_ram[address - GRAPHICS_RAM_FIRST + 1] = msb;
+            }
             CARTRIDGE_RAM_FIRST..=CARTRIDGE_RAM_LAST => panic!(),
-            WORKING_RAM_FIRST..=WORKING_RAM_LAST => (
-                self.memory[address - WORKING_RAM_FIRST] = lsb,
-                self.memory[address - WORKING_RAM_FIRST + 1] = msb,
-            ),
-            GRAPHICS_SPRITE_FIRST..=GRAPHICS_SPRITE_LAST => panic!(),
+            WORKING_RAM_FIRST..=WORKING_RAM_LAST => {
+                self.memory[address - WORKING_RAM_FIRST] = lsb;
+                self.memory[address - WORKING_RAM_FIRST + 1] = msb;
+            }
+            GRAPHICS_SPRITE_FIRST..=GRAPHICS_SPRITE_LAST => {
+                self.gpu_sprite[address - GRAPHICS_SPRITE_FIRST] = lsb;
+                self.gpu_sprite[address - GRAPHICS_SPRITE_FIRST + 1] = msb;
+            }
             IO_FIRST..=IO_LAST => panic!(),
             ZERO_PAGE_FIRST..=ZERO_PAGE_LAST => panic!(),
             _ => panic!("invalid write address: {}", address),
